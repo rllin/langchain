@@ -4,11 +4,15 @@ from typing import Any, Dict, List, Optional
 from pydantic import BaseModel, Field
 
 from langchain.memory.utils import get_prompt_input_key
-from langchain.schema import AIMessage, BaseMemory, BaseMessage, HumanMessage
+from langchain.schema import AIMessage, BaseMemory, BaseMessage, HumanMessage, ChatMessage
 
 
 class ChatMessageHistory(BaseModel):
     messages: List[BaseMessage] = Field(default_factory=list)
+
+    def add_message(self, user: str, message: str) -> None:
+        message = ChatMessage(role=user, content=message)
+        self.messages.append(message)
 
     def add_user_message(self, message: str) -> None:
         self.messages.append(HumanMessage(content=message))
@@ -38,8 +42,8 @@ class BaseChatMemory(BaseMemory, ABC):
             output_key = list(outputs.keys())[0]
         else:
             output_key = self.output_key
-        self.chat_memory.add_user_message(inputs[prompt_input_key])
-        self.chat_memory.add_ai_message(outputs[output_key])
+        self.chat_memory.add_message(*inputs[prompt_input_key].split(':', 1))
+        self.chat_memory.add_message('blk cat', outputs[output_key])
 
     def clear(self) -> None:
         """Clear memory contents."""

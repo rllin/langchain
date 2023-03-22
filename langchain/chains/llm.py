@@ -125,11 +125,21 @@ class LLMChain(Chain, BaseModel):
 
     def create_outputs(self, response: LLMResult) -> List[Dict[str, str]]:
         """Create outputs from response."""
-        return [
-            # Get the text of the top generated string.
-            {self.output_key: generation[0].text}
-            for generation in response.generations
-        ]
+        # Get the text of the top generated string.
+        results = []
+        for generation in response.generations:
+          res = {
+            self.output_key: generation[0].text,
+          }
+          logprobs = generation[0].generation_info
+          if logprobs:
+            logprobs = logprobs.get('logprobs', {})
+          if logprobs:
+            logprobs = logprobs.get('top_logprobs', [])
+          if logprobs:
+            res['logprobs'] = list(logprobs[0].to_dict().values())[0] if logprobs else None
+          results.append(res)
+        return results
 
     async def _acall(self, inputs: Dict[str, Any]) -> Dict[str, str]:
         return (await self.aapply([inputs]))[0]
